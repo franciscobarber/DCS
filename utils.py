@@ -86,9 +86,10 @@ def cross_entropy_loss(logits, expected):
           logits=logits, labels=expected))
 
 
-def optimise_and_sample(init_z, module, data, is_training):
+def optimise_and_sample(init_z, module, data, is_training, std):
   """Optimising generator latent variables and sample."""
-
+  eps = tf.random_normal(tf.shape(mean), 0, 1, dtype=tf.float32)
+  ruido = tf.multiply(std, eps) 
   if module.num_z_iters == 0:
     z_final = init_z
   else:
@@ -96,7 +97,7 @@ def optimise_and_sample(init_z, module, data, is_training):
     loop_cond = lambda i, _: i < module.num_z_iters
     def loop_body(i, z):
       loop_samples = module.generator(z, is_training)
-      gen_loss = module.gen_loss_fn(data, loop_samples)
+      gen_loss = module.gen_loss_fn(data, loop_samples, ruido)
       z_grad = tf.gradients(gen_loss, z)[0]
       z -= module.z_step_size * z_grad
       z = _project_z(z, module.z_project_method)
